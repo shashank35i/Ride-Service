@@ -1,0 +1,38 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: ride-service
+  datasource:
+    url: jdbc:mysql://localhost:3306/goon_rides
+    username: localhost
+    password: Shashank@3549
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer     //converts string to bytes
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer    //converts json to bytes
+
+      acks: all
+      properties:
+        enable.idempotence: true
+        spring.json.add.type.headers: false
+
+
+    consumer:
+      group-id: ride-service
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: com.goon.locationsync.service.request.LocationEvent
+        spring.json.trusted.packages: com.goon.locationsync.service.request    //works in coordination with type_id header
+
+app:
+  kafka:
+    topics:
+      ride-events : ride-events
+  secret-key: HBJSHUSIUSHTSJBHS732r2fufifh43fuihiaudi
