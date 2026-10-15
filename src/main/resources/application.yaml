@@ -34,5 +34,7 @@ spring:
 app:
   kafka:
     topics:
-      ride-events : ride-events
+      ride-events: ride-events
   secret-key: HBJSHUSIUSHTSJBHS732r2fufifh43fuihiaudi
+  outbox:
+    delay-ms: 500
