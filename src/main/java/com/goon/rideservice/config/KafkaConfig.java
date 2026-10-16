@@ -12,7 +12,7 @@ public class KafkaConfig {
 
     private final String rideEvents;
 
-    public KafkaConfig(@Value("app.kafka.topics.ride-events") String rideEvents){
+    public KafkaConfig(@Value("${app.kafka.topics.ride-events}") String rideEvents){
         this.rideEvents = rideEvents;
     }
 

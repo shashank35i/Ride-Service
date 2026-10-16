@@ -7,7 +7,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "outbox_events", indexes = {
+@Table(name = "outbox", indexes = {
         @Index(name = "idx_outbox_status_created", columnList = "status, created_at")
 })
 @Getter
@@ -15,7 +15,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class OutboxEvent {
+public class Outbox {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

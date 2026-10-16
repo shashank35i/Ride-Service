@@ -5,10 +5,8 @@ import com.goon.rideservice.dto.RideRequestedPayload;
 import com.goon.rideservice.dto.RideView;
 import com.goon.rideservice.dto.request.RideRequest;
 import com.goon.rideservice.dto.response.RideResponse;
-import com.goon.rideservice.entity.OutboxEvent;
-import com.goon.rideservice.entity.PaymentStatus;
+import com.goon.rideservice.entity.Outbox;
 import com.goon.rideservice.entity.Ride;
-import com.goon.rideservice.entity.RideStatus;
 import com.goon.rideservice.repository.OutboxRepository;
 import com.goon.rideservice.repository.RideRepository;
 import io.jsonwebtoken.Claims;
@@ -16,7 +14,6 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -25,10 +22,8 @@ import tools.jackson.databind.json.JsonMapper;
 
 import javax.crypto.SecretKey;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.time.Instant;
 import java.util.*;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -180,7 +175,7 @@ public class RideService {
         }
 
         outboxRepository.save(
-                OutboxEvent.builder()
+                Outbox.builder()
                         .aggregateId(saved.getRideId())
                         .eventType("RIDE_REQUESTED")
                         .payload(payload)
