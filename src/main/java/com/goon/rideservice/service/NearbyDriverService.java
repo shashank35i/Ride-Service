@@ -7,8 +7,7 @@ import org.springframework.data.redis.domain.geo.GeoReference;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -16,15 +15,18 @@ public class NearbyDriverService {
 
     private final StringRedisTemplate redisTemplate;
 
-    public List<UUID> findNearby(
-            double lat, double lon, String vehicleType) {
+    public Optional<UUID> findNearby(
+            double lat,
+            double lon,
+            String vehicleType,
+            Set<UUID> excludedDrivers) {
 
         String key = "drivers:available:" + vehicleType;
 
         var args = RedisGeoCommands.GeoSearchCommandArgs
                 .newGeoSearchArgs()
                 .sortAscending()
-                .limit(20);
+                .limit(100);
 
         var results = redisTemplate.opsForGeo().search(
                 key,
@@ -34,11 +36,12 @@ public class NearbyDriverService {
         );
 
         if (results == null) {
-            return List.of();
+            return Optional.empty();
         }
 
         return results.getContent().stream()
                 .map(r -> UUID.fromString(r.getContent().getName()))
-                .toList();
+                .filter(id -> !excludedDrivers.contains(id))
+                .findFirst();
     }
 }

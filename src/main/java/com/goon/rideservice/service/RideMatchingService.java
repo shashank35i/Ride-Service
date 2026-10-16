@@ -1,45 +1,34 @@
 package com.goon.rideservice.service;
 
-
 import com.goon.rideservice.entity.*;
-import com.goon.rideservice.dto.RideOfferedPayload;
-import com.goon.rideservice.dto.RideRequestedPayload;
+import com.goon.rideservice.dto.*;
 import com.goon.rideservice.repository.*;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
 public class RideMatchingService {
 
-    private final ProcessedEventRepository processedRepository;
-    private final RideOfferRepository offerRepository;
-    private final OutboxRepository outboxRepository;
     private final RideRepository rideRepository;
+    private final RideOfferRepository offerRepository;
+    private final ProcessedEventRepository processedRepository;
+    private final OutboxRepository outboxRepository;
+    private final NearbyDriverService nearbyDriverService;
 
     @Transactional
-    public void process(
-            UUID eventId,
-            RideRequestedPayload event,
-            List<UUID> drivers) {
+    public void process(UUID eventId, RideRequestedPayload event) {
 
         if (processedRepository.existsById(eventId)) {
             return;
         }
 
-        if (drivers.isEmpty()) {
-            throw new IllegalStateException(
-                    "No nearby drivers for ride " + event.rideId());
-        }
-
-        var ride = rideRepository.findById(event.rideId())
+        Ride ride = rideRepository.findById(event.rideId())
                 .orElseThrow(() ->
                         new IllegalStateException("Ride not found"));
 
@@ -49,9 +38,23 @@ public class RideMatchingService {
             return;
         }
 
+        Set<UUID> excludedDrivers =
+                offerRepository.findOfferedDriverIds(event.rideId());
+
+        Optional<UUID> driver = nearbyDriverService.findNearby(
+                event.pickupLat(),
+                event.pickupLon(),
+                event.vehicleType(),
+                excludedDrivers
+        );
+
+        if (driver.isEmpty()) {
+            throw new IllegalStateException("No eligible drivers found");
+        }
+
         RideOffer offer = RideOffer.builder()
                 .rideId(event.rideId())
-                .driverId(drivers.get(0))
+                .driverId(driver.get())
                 .expiresAt(Instant.now().plusSeconds(20))
                 .build();
 
@@ -63,21 +66,16 @@ public class RideMatchingService {
                 offer.getDriverId()
         );
 
-        try {
-            outboxRepository.save(
-                    Outbox.builder()
-                            .aggregateId(event.rideId())
-                            .eventType("RIDE_OFFERED")
-                            .payload(JsonMapper.shared()
-                                    .writeValueAsString(payload))
-                            .build()
-            );
-        } catch (Exception e) {
-            throw new IllegalStateException(
-                    "Failed to serialize ride offer", e);
-        }
+        outboxRepository.save(
+                Outbox.builder()
+                        .aggregateId(event.rideId())
+                        .eventType("RIDE_OFFERED")
+                        .payload(JsonMapper.shared()
+                                .writeValueAsString(payload))
+                        .build()
+        );
 
-        processedRepository.saveAndFlush(
+        processedRepository.save(
                 new ProcessedEvent(eventId, Instant.now())
         );
     }
