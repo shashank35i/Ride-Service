@@ -28,7 +28,7 @@ public class RideMatchingService {
     public void process(
             UUID eventId,
             RideRequestedPayload event,
-            List<String> drivers) {
+            List<UUID> drivers) {
 
         if (processedRepository.existsById(eventId)) {
             return;

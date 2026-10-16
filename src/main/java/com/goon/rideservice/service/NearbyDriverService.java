@@ -8,6 +8,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -15,7 +16,7 @@ public class NearbyDriverService {
 
     private final StringRedisTemplate redisTemplate;
 
-    public List<String> findNearby(
+    public List<UUID> findNearby(
             double lat, double lon, String vehicleType) {
 
         String key = "drivers:available:" + vehicleType;
@@ -37,7 +38,7 @@ public class NearbyDriverService {
         }
 
         return results.getContent().stream()
-                .map(r -> r.getContent().getName())
+                .map(r -> UUID.fromString(r.getContent().getName()))
                 .toList();
     }
 }
