@@ -33,7 +33,7 @@ public class RideOffer {
     @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private RideOfferStatus status = RideOfferStatus.PENDING;
+    private RideOfferStatus status = RideOfferStatus.OFFERED;
 
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;

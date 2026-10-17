@@ -1,7 +1,7 @@
 package com.goon.rideservice.entity;
 
 public enum RideOfferStatus {
-    PENDING,
+    OFFERED,
     ACCEPTED,
     REJECTED,
     EXPIRED
