@@ -4,6 +4,7 @@ import com.goon.rideservice.entity.*;
 import com.goon.rideservice.dto.*;
 import com.goon.rideservice.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.json.JsonMapper;
@@ -13,6 +14,7 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class RideMatchingService {
 
     private final RideRepository rideRepository;
@@ -24,59 +26,91 @@ public class RideMatchingService {
     @Transactional
     public void process(UUID eventId, RideRequestedPayload event) {
 
+        Ride ride = rideRepository.findByIdForUpdate(event.rideId())
+                .orElseThrow(() ->
+                        new IllegalStateException("Ride not found"));
+
         if (processedRepository.existsById(eventId)) {
             return;
         }
 
-        Ride ride = rideRepository.findById(event.rideId())
+        createNextOffer(ride);
+
+        processedRepository.saveAndFlush(
+                new ProcessedEvent(eventId, Instant.now())
+        );
+    }
+
+    @Transactional
+    public void offerNextDriver(UUID rideId) {
+
+        Ride ride = rideRepository.findByIdForUpdate(rideId)
                 .orElseThrow(() ->
                         new IllegalStateException("Ride not found"));
 
+        createNextOffer(ride);
+    }
+
+    private void createNextOffer(Ride ride) {
+
+        UUID rideId = ride.getRideId();
+
         if (ride.getStatus() != RideStatus.REQUESTED) {
-            processedRepository.save(
-                    new ProcessedEvent(eventId, Instant.now()));
+            return;
+        }
+
+        if (offerRepository.existsByRideIdAndStatus(
+                rideId, RideOfferStatus.OFFERED)) {
             return;
         }
 
         Set<UUID> excludedDrivers =
-                offerRepository.findOfferedDriverIds(event.rideId());
+                offerRepository.findOfferedDriverIds(rideId);
 
         Optional<UUID> driver = nearbyDriverService.findNearby(
-                event.pickupLat(),
-                event.pickupLon(),
-                event.vehicleType(),
+                ride.getPickupLat(),
+                ride.getPickupLon(),
+                ride.getVehicleType().name(),
                 excludedDrivers
         );
 
         if (driver.isEmpty()) {
-            throw new IllegalStateException("No eligible drivers found");
+            log.info("No eligible drivers found for ride {}", rideId);
+            return;
         }
 
+        Instant expiresAt = Instant.now().plusSeconds(15);
+
         RideOffer offer = RideOffer.builder()
-                .rideId(event.rideId())
+                .rideId(rideId)
                 .driverId(driver.get())
-                .expiresAt(Instant.now().plusSeconds(20))
+                .status(RideOfferStatus.OFFERED)
+                .expiresAt(expiresAt)
                 .build();
 
         offerRepository.saveAndFlush(offer);
 
-        RideOfferedPayload payload = new RideOfferedPayload(
-                offer.getOfferId(),
-                offer.getRideId(),
-                offer.getDriverId()
-        );
+        RideOfferedPayload payload = RideOfferedPayload.builder()
+                .offerId(offer.getOfferId())
+                .rideId(rideId)
+                .driverId(offer.getDriverId())
+                .pickupLat(ride.getPickupLat())
+                .pickupLon(ride.getPickupLon())
+                .dropLat(ride.getDropLat())
+                .dropLon(ride.getDropLon())
+                .estimatedFare(ride.getQuotedFare())
+                .currency(ride.getCurrency())
+                .expiresAt(expiresAt)
+                .expiresInSeconds(15)
+                .build();
 
         outboxRepository.save(
                 Outbox.builder()
-                        .aggregateId(event.rideId())
+                        .aggregateId(rideId)
                         .eventType("RIDE_OFFERED")
                         .payload(JsonMapper.shared()
                                 .writeValueAsString(payload))
                         .build()
-        );
-
-        processedRepository.save(
-                new ProcessedEvent(eventId, Instant.now())
         );
     }
 }
