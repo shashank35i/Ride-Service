@@ -1,6 +1,7 @@
 package com.goon.rideservice.repository;
 
 import com.goon.rideservice.entity.RideOffer;
+import com.goon.rideservice.entity.RideOfferStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -39,4 +40,9 @@ public interface RideOfferRepository extends JpaRepository<RideOffer, UUID> {
             """, nativeQuery = true)
     int declineOffer(UUID offerId,UUID driverId);
 
+
+    boolean existsByRideIdAndStatus(
+            UUID rideId,
+            RideOfferStatus status
+    );
 }

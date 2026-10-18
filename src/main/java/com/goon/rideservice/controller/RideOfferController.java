@@ -14,13 +14,15 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class RideOfferController {
     private  final RideMatchingService rideMatchingService;
+    private final RideOfferService rideOfferService;
 
     @PatchMapping("/{offerId}/decline")
     public ResponseEntity<Void> decline(
         @PathVariable UUID offerId,
         @RequestBody UUID driverId){
 
-        rideMatchingService.offerNextDriver(offerId,driverId);
+        UUID rideId = rideOfferService.declineOffer(offerId,driverId);
+        rideMatchingService.offerNextDriver(rideId);
         return ResponseEntity.noContent().build();
 }
 
