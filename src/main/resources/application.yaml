@@ -35,7 +35,7 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       enable-auto-commit: false
       properties:
-        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+        spring.deserializer.value.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
         spring.json.use.type.headers: false
         spring.json.value.default.type: com.goon.locationsync.service.request.LocationEvent
         spring.json.trusted.packages: com.goon.locationsync.service.request    //works in coordination with type_id header
