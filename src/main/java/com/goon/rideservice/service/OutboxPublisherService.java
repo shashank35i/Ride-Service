@@ -31,6 +31,7 @@ public class OutboxPublisherService {
             String topic = switch (event.getEventType()) {
                 case "RIDE_REQUESTED" -> "ride-requested";
                 case "RIDE_OFFERED" -> "ride-offered";
+                case "DRIVER_ASSIGNED" -> "driver-assigned";
                 default -> throw new IllegalStateException(
                         "Unknown event: " + event.getEventType());
             };
