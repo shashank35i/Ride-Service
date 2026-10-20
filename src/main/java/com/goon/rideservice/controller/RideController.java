@@ -17,7 +17,7 @@ public class RideController {
     private final RideService rideService;
 
 
-    @PostMapping()
+    @PostMapping("/create_ride")
     public ResponseEntity<RideResponse> createRide(@RequestHeader("Idempotency-Key") String idempotencyKey,
                                                    @RequestHeader("X-User-Id") String customerId,
                                                    @RequestBody RideRequest rideRequest
