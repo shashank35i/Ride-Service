@@ -25,7 +25,7 @@ public interface RideOfferRepository extends JpaRepository<RideOffer, UUID> {
  * so new updates wont be shown rightafter running query method if clearautomatically isnt true.
  *
  *
- * flushautomatically - hibernarte delays entity modifications to db ,
+ * flushautomatically - hibernarte sends data to db only after method ends, entity modifications to db ,
  * until updates in memory are executed, which can make new modifications work on stale data
  *
   */
@@ -38,7 +38,7 @@ public interface RideOfferRepository extends JpaRepository<RideOffer, UUID> {
          AND driver_id = :driverId
          AND status = 'OFFERED'         
             """, nativeQuery = true)
-    int declineOffer(UUID offerId,UUID driverId);
+    int declineOffer(@Param("offerId") UUID offerId,@Param("driverId") UUID driverId);
 
 
     boolean existsByRideIdAndStatus(
