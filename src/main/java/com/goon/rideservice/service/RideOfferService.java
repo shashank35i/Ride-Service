@@ -1,6 +1,7 @@
 package com.goon.rideservice.service;
 
 import com.goon.rideservice.dto.*;
+import com.goon.rideservice.dto.request.AcceptOfferRequest;
 import com.goon.rideservice.dto.response.AcceptOfferResponse;
 import com.goon.rideservice.entity.*;
 import com.goon.rideservice.repository.*;

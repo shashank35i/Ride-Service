@@ -48,10 +48,10 @@ public class Ride {
     private UUID rideId;
 
     @Column(name = "customer_id", nullable = false, length = 64)
-    private String customerId;
+    private UUID customerId;
 
     @Column(name = "driver_id", length = 64)
-    private String driverId;
+    private UUID driverId;
 
     @Column(name = "idempotency_key", nullable = false, length = 128)
     private String idempotencyKey;
