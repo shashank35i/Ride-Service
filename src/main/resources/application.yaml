@@ -4,6 +4,12 @@ server:
 spring:
   application:
     name: ride-service
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${GOON_KEYCLOAK_ISSUER}
+          audiences: ride-service
   datasource:
     url: jdbc:mysql://localhost:3306/ride_db?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
     username: root
