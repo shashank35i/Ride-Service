@@ -26,6 +26,11 @@ public class InternalSecurityConfig {
                         .access(fromServiceWithScope("api-gateway", "rides.create"))
                         .requestMatchers(HttpMethod.PATCH, "/internal/offers/*/decline")
                         .access(fromServiceWithScope("driver-service", "offers.decline"))
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/internal/offers/*/accept"
+                        )
+                        .access(fromServiceWithScope("driver-service", "offers.accept"))
                         .anyRequest().denyAll())
                 .oauth2ResourceServer(resourceServer -> resourceServer.jwt(Customizer.withDefaults()))
                 .build();

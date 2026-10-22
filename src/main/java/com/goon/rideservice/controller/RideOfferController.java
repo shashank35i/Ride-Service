@@ -28,15 +28,15 @@ public class RideOfferController {
         return ResponseEntity.noContent().build();
 }
 
+
     @PostMapping("/{offerId}/accept")
     public ResponseEntity<AcceptOfferResponse> accept(
             @PathVariable UUID offerId,
             @RequestBody AcceptOfferRequest request) {
 
-        AcceptOfferResponse response =
-                rideOfferService.acceptOffer(offerId, request);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(
+                rideOfferService.acceptOffer(offerId, request)
+        );
     }
 
 }

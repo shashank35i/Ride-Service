@@ -1,4 +1,10 @@
 package com.goon.rideservice.dto.request;
 
-public record AcceptOfferRequest() {
-}
+import java.util.UUID;
+
+public record AcceptOfferRequest(
+        UUID driverId,
+        String driverName,
+        String vehicleModel,
+        String vehicleNumber
+) {}

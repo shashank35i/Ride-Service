@@ -2,11 +2,14 @@ package com.goon.rideservice.repository;
 
 import com.goon.rideservice.entity.RideOffer;
 import com.goon.rideservice.entity.RideOfferStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -40,6 +43,9 @@ public interface RideOfferRepository extends JpaRepository<RideOffer, UUID> {
             """, nativeQuery = true)
     int declineOffer(@Param("offerId") UUID offerId,@Param("driverId") UUID driverId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT o FROM RideOffer o WHERE o.offerId = :offerId")
+    Optional<RideOffer> findByIdForUpdate(@Param("offerId") UUID offerId);
 
     boolean existsByRideIdAndStatus(
             UUID rideId,
