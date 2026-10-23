@@ -80,6 +80,7 @@ public class RideOfferService {
                 .customerId(ride.getCustomerId())
                 .driverId(request.driverId())
                 .driverName(request.driverName())
+                .startOtp(ride.getStartOtp())
                 .vehicleModel(request.vehicleModel())
                 .vehicleNumber(request.vehicleNumber())
                 .build();

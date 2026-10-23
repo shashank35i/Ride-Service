@@ -9,6 +9,7 @@ public record DriverAssignedPayload(
         UUID rideId,
         UUID customerId,
         UUID driverId,
+        String startOtp,
         String driverName,
         String vehicleModel,
         String vehicleNumber

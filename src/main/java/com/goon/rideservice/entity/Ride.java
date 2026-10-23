@@ -2,11 +2,13 @@ package com.goon.rideservice.entity;
 
 import com.goon.rideservice.service.VehicleType;
 import jakarta.persistence.*;
+
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -40,6 +42,8 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class Ride {
+
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -173,6 +177,9 @@ public class Ride {
     void onCreate() {
         if (requestedAt == null) {
             requestedAt = Instant.now();
+        }
+        if (startOtp == null) {
+            startOtp = String.format("%04d", RANDOM.nextInt(10000));   ///take until 9999 , dont invlove 10000  . andonly 4 digits   , fill rest with 0s.
         }
     }
 }
