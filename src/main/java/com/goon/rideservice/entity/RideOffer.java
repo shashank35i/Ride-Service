@@ -8,12 +8,21 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "ride_offers")
+@Table(
+        name = "ride_offers",
+        indexes = {
+                @Index(
+                        name = "idx_ride_offers_status_expires",
+                        columnList = "status, expires_at"
+                )
+        }
+)
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+
 public class RideOffer {
 
     @Id

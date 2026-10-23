@@ -82,4 +82,6 @@ public interface RideOfferRepository extends JpaRepository<RideOffer, UUID> {
             @Param("offerId") UUID offerId,
             @Param("now") Instant now
     );
+
+
 }

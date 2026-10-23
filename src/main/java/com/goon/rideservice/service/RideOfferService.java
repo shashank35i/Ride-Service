@@ -26,9 +26,9 @@ public class RideOfferService {
     @Transactional
     public UUID declineOffer(UUID offerId, UUID driverId) {
 
-        int status = rideOfferRepository.declineOffer(offerId, driverId);
+        int updated = rideOfferRepository.declineOffer(offerId, driverId);
 
-        if (status == 0) {
+        if (updated == 0) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
                     "Invalid offer or already declined"
@@ -45,49 +45,35 @@ public class RideOfferService {
             UUID offerId,
             AcceptOfferRequest request) {
 
-        RideOffer initialOffer = rideOfferRepository.findById(offerId)
+        RideOffer offer = rideOfferRepository.findByIdForUpdate(offerId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Offer not found"));
 
-        Ride ride = rideRepository
-                .findByIdForUpdate(initialOffer.getRideId())
+        Ride ride = rideRepository.findByIdForUpdate(offer.getRideId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Ride not found"));
 
-        RideOffer offer = rideOfferRepository
-                .findByIdForUpdate(offerId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Offer not found"));
-
-        if (!offer.getRideId().equals(ride.getRideId())) {
+        if (request == null || request.driverId() == null
+                || !offer.getDriverId().equals(request.driverId())) {
             throw new ResponseStatusException(
-                    HttpStatus.CONFLICT, "Invalid offer");
+                    HttpStatus.FORBIDDEN, "Invalid driver or offer");
         }
 
-        if (request.driverId() == null ||
-                !offer.getDriverId().equals(request.driverId())) {
+        if (offer.getStatus() != RideOfferStatus.OFFERED
+                || !offer.getExpiresAt().isAfter(Instant.now())
+                || ride.getStatus() != RideStatus.REQUESTED) {
             throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN, "Offer belongs to another driver");
-        }
-
-        if (offer.getStatus() != RideOfferStatus.OFFERED ||
-                !offer.getExpiresAt().isAfter(Instant.now())) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT, "Offer expired or unavailable");
-        }
-
-        if (ride.getStatus() != RideStatus.REQUESTED) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT, "Ride already assigned");
+                    HttpStatus.CONFLICT, "Offer unavailable");
         }
 
         offer.setStatus(RideOfferStatus.ACCEPTED);
-
         ride.setStatus(RideStatus.ASSIGNED);
         ride.setDriverId(request.driverId());
 
+        UUID rideId = ride.getRideId();
+
         DriverAssignedPayload payload = DriverAssignedPayload.builder()
-                .rideId(ride.getRideId())
+                .rideId(rideId)
                 .customerId(ride.getCustomerId())
                 .driverId(request.driverId())
                 .driverName(request.driverName())
@@ -95,43 +81,36 @@ public class RideOfferService {
                 .vehicleNumber(request.vehicleNumber())
                 .build();
 
-        outboxRepository.save(
-                Outbox.builder()
-                        .aggregateId(ride.getRideId())
-                        .eventType("DRIVER_ASSIGNED")
-                        .payload(JsonMapper.shared()
-                                .writeValueAsString(payload))
-                        .build()
-        );
+        outboxRepository.save(Outbox.builder()
+                .aggregateId(rideId)
+                .eventType("DRIVER_ASSIGNED")
+                .payload(JsonMapper.shared().writeValueAsString(payload))
+                .build());
 
-        return new AcceptOfferResponse(
-                ride.getRideId(),
-                RideStatus.ASSIGNED
-        );
+        return new AcceptOfferResponse(rideId, RideStatus.ASSIGNED);
     }
 
     @Transactional
     public UUID expireOffer(UUID offerId) {
 
-        RideOffer current = rideOfferRepository.findById(offerId)
+        RideOffer offer = rideOfferRepository.findByIdForUpdate(offerId)
                 .orElse(null);
 
-        if (current == null) {
+        if (offer == null) {
             return null;
         }
 
-        Ride ride = rideRepository.findByIdForUpdate(current.getRideId())
+        Ride ride = rideRepository.findByIdForUpdate(offer.getRideId())
                 .orElseThrow();
 
-        if (ride.getStatus() != RideStatus.REQUESTED) {
+        if (ride.getStatus() != RideStatus.REQUESTED
+                || offer.getStatus() != RideOfferStatus.OFFERED
+                || offer.getExpiresAt().isAfter(Instant.now())) {
             return null;
         }
 
-        int updated = rideOfferRepository.expireOffer(
-                offerId,
-                Instant.now()
-        );
+        offer.setStatus(RideOfferStatus.EXPIRED);
 
-        return updated == 1 ? ride.getRideId() : null;
+        return ride.getRideId();
     }
 }
