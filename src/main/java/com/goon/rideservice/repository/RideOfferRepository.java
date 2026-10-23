@@ -84,4 +84,7 @@ public interface RideOfferRepository extends JpaRepository<RideOffer, UUID> {
     );
 
 
+    @Query("SELECT o.rideId FROM RideOffer o WHERE o.offerId = :offerId")
+    Optional<UUID> findRideIdByOfferId(@Param("offerId") UUID offerId);
+
 }

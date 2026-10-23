@@ -45,13 +45,17 @@ public class RideOfferService {
             UUID offerId,
             AcceptOfferRequest request) {
 
-        RideOffer offer = rideOfferRepository.findByIdForUpdate(offerId)
+        UUID rideId = rideOfferRepository.findRideIdByOfferId(offerId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Offer not found"));
 
-        Ride ride = rideRepository.findByIdForUpdate(offer.getRideId())
+        Ride ride = rideRepository.findByIdForUpdate(rideId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Ride not found"));
+
+        RideOffer offer = rideOfferRepository.findByIdForUpdate(offerId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Offer not found"));
 
         if (request == null || request.driverId() == null
                 || !offer.getDriverId().equals(request.driverId())) {
@@ -70,7 +74,6 @@ public class RideOfferService {
         ride.setStatus(RideStatus.ASSIGNED);
         ride.setDriverId(request.driverId());
 
-        UUID rideId = ride.getRideId();
 
         DriverAssignedPayload payload = DriverAssignedPayload.builder()
                 .rideId(rideId)
@@ -93,14 +96,17 @@ public class RideOfferService {
     @Transactional
     public UUID expireOffer(UUID offerId) {
 
-        RideOffer offer = rideOfferRepository.findByIdForUpdate(offerId)
+        UUID rideId = rideOfferRepository.findRideIdByOfferId(offerId)
                 .orElse(null);
 
-        if (offer == null) {
+        if (rideId == null) {
             return null;
         }
 
-        Ride ride = rideRepository.findByIdForUpdate(offer.getRideId())
+        Ride ride = rideRepository.findByIdForUpdate(rideId)
+                .orElseThrow();
+
+        RideOffer offer = rideOfferRepository.findByIdForUpdate(offerId)
                 .orElseThrow();
 
         if (ride.getStatus() != RideStatus.REQUESTED
@@ -111,6 +117,6 @@ public class RideOfferService {
 
         offer.setStatus(RideOfferStatus.EXPIRED);
 
-        return ride.getRideId();
+        return rideId;
     }
 }
