@@ -3,12 +3,16 @@ package com.goon.rideservice.repository;
 import com.goon.rideservice.entity.RideOffer;
 import com.goon.rideservice.entity.RideOfferStatus;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -50,5 +54,32 @@ public interface RideOfferRepository extends JpaRepository<RideOffer, UUID> {
     boolean existsByRideIdAndStatus(
             UUID rideId,
             RideOfferStatus status
+    );
+
+
+
+    @Query("""
+        SELECT o.offerId
+        FROM RideOffer o
+        WHERE o.status = RideOfferStatus.OFFERED
+        AND o.expiresAt <= :now
+        """)
+    List<UUID> findExpiredOfferIds(
+            @Param("now") Instant now,
+            Pageable pageable
+    );
+
+
+    @Modifying
+    @Query("""
+    UPDATE RideOffer o
+    SET o.status = RideOfferStatus.EXPIRED
+    WHERE o.offerId = :offerId
+    AND o.status = RideOfferStatus.OFFERED
+    AND o.expiresAt <= :now
+    """)
+    int expireOffer(
+            @Param("offerId") UUID offerId,
+            @Param("now") Instant now
     );
 }
