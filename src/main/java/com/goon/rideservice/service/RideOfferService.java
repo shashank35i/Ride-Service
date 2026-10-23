@@ -109,4 +109,29 @@ public class RideOfferService {
                 RideStatus.ASSIGNED
         );
     }
+
+    @Transactional
+    public UUID expireOffer(UUID offerId) {
+
+        RideOffer current = rideOfferRepository.findById(offerId)
+                .orElse(null);
+
+        if (current == null) {
+            return null;
+        }
+
+        Ride ride = rideRepository.findByIdForUpdate(current.getRideId())
+                .orElseThrow();
+
+        if (ride.getStatus() != RideStatus.REQUESTED) {
+            return null;
+        }
+
+        int updated = rideOfferRepository.expireOffer(
+                offerId,
+                Instant.now()
+        );
+
+        return updated == 1 ? ride.getRideId() : null;
+    }
 }
