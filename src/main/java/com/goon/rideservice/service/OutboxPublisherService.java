@@ -32,6 +32,8 @@ public class OutboxPublisherService {
                 case "RIDE_REQUESTED" -> "ride-requested";
                 case "RIDE_OFFERED" -> "ride-offered";
                 case "DRIVER_ASSIGNED" -> "driver-assigned";
+                case "DRIVER_ARRIVED" -> "driver-arrived";
+                case "RIDE_STARTED" -> "ride-started";
                 default -> throw new IllegalStateException(
                         "Unknown event: " + event.getEventType());
             };
