@@ -141,7 +141,7 @@ public class RideService {
         }
 
         Ride ride = Ride.builder()
-                .customerId(customerId)
+                .customerId(UUID.fromString(customerId))
                 .idempotencyKey(idempotencyKey)
                 .requestHash(hash)
                 .quoteId(quoteId)

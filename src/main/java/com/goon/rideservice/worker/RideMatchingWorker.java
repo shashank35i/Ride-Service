@@ -19,7 +19,8 @@ public class RideMatchingWorker {
 
     @KafkaListener(
             topics = "ride-requested",
-            groupId = "ride-matching"
+            groupId = "ride-matching",
+            containerFactory = "rideMatchingKafkaListenerContainerFactory"
     )
     public void consume(
             String message,
