@@ -167,21 +167,24 @@ public class RideLifecycleService {
         );
     }
 
-    private double distanceMeters(
-            double lat1, double lon1,
-            double lat2, double lon2
-    ) {
-
+    private double distanceMeters(double lat1, double lon1,
+                                  double lat2, double lon2) {
         double a = Math.toRadians(lat2 - lat1);
         double b = Math.toRadians(lon2 - lon1);
 
-        double x = Math.pow(Math.sin(a / 2), 2)
+        double sinA = Math.sin(a / 2);
+        double sinB = Math.sin(b / 2);
+
+        double x = sinA * sinA
                 + Math.cos(Math.toRadians(lat1))
                 * Math.cos(Math.toRadians(lat2))
-                * Math.pow(Math.sin(b / 2), 2);
+                * sinB * sinB;
 
-        return 6371000 * 2 *
-                Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+        x = Math.min(1.0, Math.max(0.0, x));
+
+        return 6371000 * 2 * Math.atan2(
+                Math.sqrt(x), Math.sqrt(1 - x)
+        );
     }
 
 
