@@ -169,14 +169,14 @@ public class RideLifecycleService {
 
     private double distanceMeters(double lat1, double lon1,
                                   double lat2, double lon2) {
-        double a = Math.toRadians(lat2 - lat1);
+        double a = Math.toRadians(lat2 - lat1);   //converts angle to radians
         double b = Math.toRadians(lon2 - lon1);
 
         double sinA = Math.sin(a / 2);
         double sinB = Math.sin(b / 2);
 
-        double x = sinA * sinA
-                + Math.cos(Math.toRadians(lat1))
+        double x = sinA * sinA                         ///main formula
+                + Math.cos(Math.toRadians(lat1))     ///sinA^2 + cos(lat1) * cos(lat2) *sinB^2
                 * Math.cos(Math.toRadians(lat2))
                 * sinB * sinB;
 
