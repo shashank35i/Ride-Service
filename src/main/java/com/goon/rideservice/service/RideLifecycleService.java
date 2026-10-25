@@ -52,7 +52,7 @@ public class RideLifecycleService {
             throw new IllegalStateException("GPS location is outdated");
         }
 
-        List<Point> positions = redis.opsForGeo()
+        List<Point> positions = redis.opsForGeo()    ///spring redis always returns list of points even when stored single point .
                 .position("loc:" + rideId, id);
 
         if (positions == null || positions.isEmpty()
