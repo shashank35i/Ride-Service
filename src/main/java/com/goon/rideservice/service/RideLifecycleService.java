@@ -187,5 +187,9 @@ public class RideLifecycleService {
         );
     }
 
+    /***
+     * @Math.atan2 ->  angle(in radians) between the positive x-axis and
+     * the ray pointing to the coordinate \((x, y)\)
+     */
 
 }
