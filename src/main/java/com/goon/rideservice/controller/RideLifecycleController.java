@@ -1,6 +1,8 @@
 package com.goon.rideservice.controller;
 
 
+import com.goon.rideservice.dto.StartResult;
+import com.goon.rideservice.dto.request.StartRequest;
 import com.goon.rideservice.service.RideLifecycleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -24,5 +26,14 @@ public class RideLifecycleController {
 
         Instant res = rideLifecycleService.markDriverArrived(rideId,driverId);
         return ResponseEntity.ok(res);
+    }
+
+
+    @PostMapping("/{rideId}/start")
+    public ResponseEntity<StartResult> start(
+            @PathVariable UUID rideId,
+            @RequestBody StartRequest request
+    ){
+        StartResult res = rideLifecycleService.verifyStartOtp()
     }
 }
