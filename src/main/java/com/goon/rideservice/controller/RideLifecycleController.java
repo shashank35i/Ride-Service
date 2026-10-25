@@ -34,6 +34,11 @@ public class RideLifecycleController {
             @PathVariable UUID rideId,
             @RequestBody StartRequest request
     ){
-        StartResult res = rideLifecycleService.verifyStartOtp()
-    }
+        StartResult res = rideLifecycleService.verifyStartOtp(rideId,request.driverId(), request.otp());
+
+        return ResponseEntity.status(
+                res.success() ? 200 : res.status().equals("OTP_LOCKED") ? 429 : 400)
+                .body(res);
+    }  ///429 -> Too many incorrect OTP attempts
+    ///400 -> incrct otp
 }
