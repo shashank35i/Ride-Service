@@ -189,6 +189,9 @@ public class RideService {
         return ((Number) claims.get(name)).doubleValue();
     }
 
+
+    /// claims.get("age") -> Object , (Number) -> converts Object to Number Object .
+    /// doubleValue() -> converts to primitive double
     private String convertToHash(RideRequest r, String quoteId) {
         String data = String.join("|",
                 quoteId,
