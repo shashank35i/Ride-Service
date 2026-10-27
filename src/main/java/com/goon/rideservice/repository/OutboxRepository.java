@@ -14,7 +14,7 @@ public interface OutboxRepository extends JpaRepository<Outbox, UUID> {
 
     @Query(value = """
             SELECT * FROM outbox
-            WHERE published = false
+            WHERE status = 'PENDING'
             ORDER BY created_at, event_id
             LIMIT :limit
             FOR UPDATE SKIP LOCKED

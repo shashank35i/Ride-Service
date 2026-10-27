@@ -1,5 +1,6 @@
 package com.goon.rideservice.config;
 
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -22,15 +23,16 @@ public class InternalSecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.POST, "/rides/create_ride")
-                        .access(fromServiceWithScope("api-gateway", "rides.create"))
+                        .access(fromServiceWithScope("goon-services", "rides.create"))
                         .requestMatchers(HttpMethod.PATCH, "/internal/offers/*/decline")
-                        .access(fromServiceWithScope("driver-service", "offers.decline"))
+                        .access(fromServiceWithScope("goon-services", "offers.decline"))
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/internal/offers/*/accept"
                         )
-                        .access(fromServiceWithScope("driver-service", "offers.accept"))
+                        .access(fromServiceWithScope("goon-services", "offers.accept"))
                         .anyRequest().denyAll())
                 .oauth2ResourceServer(resourceServer -> resourceServer.jwt(Customizer.withDefaults()))
                 .build();

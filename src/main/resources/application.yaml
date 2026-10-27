@@ -27,8 +27,8 @@ spring:
   kafka:
     bootstrap-servers: localhost:9092
     producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer     //converts string to bytes
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer    //converts json to bytes
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer     #converts string to bytes
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer    #converts json to bytes
 
       acks: all
       properties:
