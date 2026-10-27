@@ -59,6 +59,7 @@ public class RideService {
 
         Claims claims;
 
+
         try {
             claims = Jwts.parser()
                     .verifyWith(secretKey)
@@ -77,12 +78,12 @@ public class RideService {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST, "Missing quote ID");
         }
-
+        UUID custId = UUID.fromString(customerId);
         String hash = convertToHash(request, quoteId);
 
         Optional<RideView> existing =
                 rideRepository.findByCustomerIdAndIdempotencyKey(
-                        customerId, idempotencyKey);
+                        custId, idempotencyKey);
 
         if (existing.isPresent()) {
             RideView view = existing.get();
@@ -141,7 +142,7 @@ public class RideService {
         }
 
         Ride ride = Ride.builder()
-                .customerId(UUID.fromString(customerId))
+                .customerId(custId)
                 .idempotencyKey(idempotencyKey)
                 .requestHash(hash)
                 .quoteId(quoteId)

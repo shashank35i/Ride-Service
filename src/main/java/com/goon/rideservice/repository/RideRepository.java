@@ -14,7 +14,7 @@ import java.util.UUID;
 
 
 public interface RideRepository extends JpaRepository<Ride, UUID> {
-    Optional<RideView> findByCustomerIdAndIdempotencyKey(String customerId, String idempotencyKey);
+    Optional<RideView> findByCustomerIdAndIdempotencyKey(UUID customerId, String idempotencyKey);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT r FROM Ride r WHERE r.rideId = :rideId")
