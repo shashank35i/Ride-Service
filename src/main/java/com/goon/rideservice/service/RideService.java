@@ -10,15 +10,14 @@ import com.goon.rideservice.entity.Ride;
 import com.goon.rideservice.repository.OutboxRepository;
 import com.goon.rideservice.repository.RideRepository;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.json.JsonMapper;
@@ -43,13 +42,13 @@ public class RideService {
     public RideService(@Value("${app.secret-key}") String secretKey,
                        RideRepository rideRepository,
                        OutboxRepository outboxRepository,
-                       PlatformTransactionManager transactionManager
+                       TransactionTemplate transactionTemplate
                        ){
         this.rideRepository = rideRepository;
         byte[] key = Base64.getDecoder().decode(secretKey);
         this.secretKey = Keys.hmacShaKeyFor(key);
+        this.transactionTemplate = transactionTemplate;
         this.outboxRepository = outboxRepository;
-        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
     public RideResponse createRide(
@@ -63,50 +62,34 @@ public class RideService {
         }
 
         Claims claims = parseSignedQuote(request.signedQuote());
-
         String quoteId = claims.getId();
 
         if (quoteId == null || quoteId.isBlank()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST, "Missing quote ID");
         }
+
         UUID custId = UUID.fromString(customerId);
         String hash = convertToHash(request, quoteId);
 
         try {
-            return transactionTemplate.execute(status -> createRideInTransaction(
-                    idempotencyKey, customerId, request, claims, quoteId, custId, hash));
-        } catch (DataIntegrityViolationException ex) {
-            // A concurrent request can pass the initial lookup and win the unique insert.
-            // TransactionTemplate has rolled back before we read the winner's committed row.
-            Optional<RideView> winner = rideRepository.findByCustomerIdAndIdempotencyKey(
-                    custId, idempotencyKey);
-            if (winner.isEmpty()) {
-                throw ex;
-            }
-            if (!winner.get().requestHash().equals(hash)) {
+            return transactionTemplate.execute(s ->
+                    createRideInTransaction(
+                            idempotencyKey, customerId, request,
+                            claims, quoteId, custId, hash));
+        } catch (DataIntegrityViolationException e) {
+
+            RideView r = rideRepository
+                    .findByCustomerIdAndIdempotencyKey(custId, idempotencyKey)
+                    .orElseThrow(() -> e);
+
+            if (!r.requestHash().equals(hash)) {
                 throw new ResponseStatusException(
                         HttpStatus.CONFLICT,
                         "Idempotency key reused with different request");
             }
-            return RideResponse.from(winner.get());
-        }
-    }
 
-    private Claims parseSignedQuote(String signedQuote) {
-        try {
-            return Jwts.parser()
-                    .verifyWith(secretKey)
-                    .build()
-                    .parseSignedClaims(signedQuote)
-                    .getPayload();
-        } catch (ExpiredJwtException e) {
-            // Preserve the verified claims so a completed request can be replayed
-            // idempotently after expiry. New rides are rejected in the transaction.
-            return e.getClaims();
-        } catch (JwtException | IllegalArgumentException e) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST, "Invalid or expired quote");
+            return RideResponse.from(r);
         }
     }
 
@@ -140,9 +123,9 @@ public class RideService {
                     HttpStatus.FORBIDDEN, "Customer mismatch");
         }
 
-        if (claims.getExpiration() == null || !claims.getExpiration().after(new Date())) {
+        if (claims.getExpiration() == null) {
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST, "Missing or expired quote");
+                    HttpStatus.BAD_REQUEST, "Missing quote expiration");
         }
 
         if (Double.compare(request.pickupLat(), number(claims, "pickupLat")) != 0 ||
@@ -166,7 +149,6 @@ public class RideService {
         try {
             quotedFare = new BigDecimal(
                     claims.get("estimatedFare").toString());
-
         } catch (RuntimeException e) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST, "Invalid quoted fare");
@@ -223,7 +205,18 @@ public class RideService {
 
         return RideResponse.from(saved);
     }
-
+    private Claims parseSignedQuote(String signedQuote) {
+        try {
+            return Jwts.parser()
+                    .verifyWith(secretKey)
+                    .build()
+                    .parseSignedClaims(signedQuote)
+                    .getPayload();
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Invalid or expired quote");
+        }
+    }
     private double number(Claims claims, String name) {
         return ((Number) claims.get(name)).doubleValue();
     }
