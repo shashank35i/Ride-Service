@@ -10,13 +10,16 @@ import com.goon.rideservice.entity.Ride;
 import com.goon.rideservice.repository.OutboxRepository;
 import com.goon.rideservice.repository.RideRepository;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -35,18 +38,20 @@ public class RideService {
     private final RideRepository rideRepository;
     private final SecretKey secretKey;
     private final OutboxRepository outboxRepository;
+    private final TransactionTemplate transactionTemplate;
 
     public RideService(@Value("${app.secret-key}") String secretKey,
                        RideRepository rideRepository,
-                       OutboxRepository outboxRepository
+                       OutboxRepository outboxRepository,
+                       PlatformTransactionManager transactionManager
                        ){
         this.rideRepository = rideRepository;
         byte[] key = Base64.getDecoder().decode(secretKey);
         this.secretKey = Keys.hmacShaKeyFor(key);
         this.outboxRepository = outboxRepository;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
-    @Transactional
     public RideResponse createRide(
             String idempotencyKey,
             String customerId,
@@ -57,20 +62,7 @@ public class RideService {
                     HttpStatus.BAD_REQUEST, "Missing idempotency key");
         }
 
-        Claims claims;
-
-
-        try {
-            claims = Jwts.parser()
-                    .verifyWith(secretKey)
-                    .build()
-                    .parseSignedClaims(request.signedQuote())
-                    .getPayload();
-
-        } catch (JwtException | IllegalArgumentException e) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST, "Invalid or expired quote");
-        }
+        Claims claims = parseSignedQuote(request.signedQuote());
 
         String quoteId = claims.getId();
 
@@ -80,6 +72,52 @@ public class RideService {
         }
         UUID custId = UUID.fromString(customerId);
         String hash = convertToHash(request, quoteId);
+
+        try {
+            return transactionTemplate.execute(status -> createRideInTransaction(
+                    idempotencyKey, customerId, request, claims, quoteId, custId, hash));
+        } catch (DataIntegrityViolationException ex) {
+            // A concurrent request can pass the initial lookup and win the unique insert.
+            // TransactionTemplate has rolled back before we read the winner's committed row.
+            Optional<RideView> winner = rideRepository.findByCustomerIdAndIdempotencyKey(
+                    custId, idempotencyKey);
+            if (winner.isEmpty()) {
+                throw ex;
+            }
+            if (!winner.get().requestHash().equals(hash)) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "Idempotency key reused with different request");
+            }
+            return RideResponse.from(winner.get());
+        }
+    }
+
+    private Claims parseSignedQuote(String signedQuote) {
+        try {
+            return Jwts.parser()
+                    .verifyWith(secretKey)
+                    .build()
+                    .parseSignedClaims(signedQuote)
+                    .getPayload();
+        } catch (ExpiredJwtException e) {
+            // Preserve the verified claims so a completed request can be replayed
+            // idempotently after expiry. New rides are rejected in the transaction.
+            return e.getClaims();
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Invalid or expired quote");
+        }
+    }
+
+    private RideResponse createRideInTransaction(
+            String idempotencyKey,
+            String customerId,
+            RideRequest request,
+            Claims claims,
+            String quoteId,
+            UUID custId,
+            String hash) {
 
         Optional<RideView> existing =
                 rideRepository.findByCustomerIdAndIdempotencyKey(
@@ -102,9 +140,9 @@ public class RideService {
                     HttpStatus.FORBIDDEN, "Customer mismatch");
         }
 
-        if (claims.getExpiration() == null) {
+        if (claims.getExpiration() == null || !claims.getExpiration().after(new Date())) {
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST, "Missing quote expiration");
+                    HttpStatus.BAD_REQUEST, "Missing or expired quote");
         }
 
         if (Double.compare(request.pickupLat(), number(claims, "pickupLat")) != 0 ||

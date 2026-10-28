@@ -21,6 +21,7 @@ public class RideOfferService {
 
     private final RideOfferRepository rideOfferRepository;
     private final RideRepository rideRepository;
+    private final DriverAssignmentRepository driverAssignmentRepository;
     private final OutboxRepository outboxRepository;
 
     @Transactional
@@ -68,6 +69,13 @@ public class RideOfferService {
                 || ride.getStatus() != RideStatus.REQUESTED) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT, "Offer unavailable");
+        }
+
+        int claimed = driverAssignmentRepository.claim(
+                request.driverId(), rideId, Instant.now());
+        if (claimed != 1) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT, "Driver already has an active ride");
         }
 
         offer.setStatus(RideOfferStatus.ACCEPTED);

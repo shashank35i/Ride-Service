@@ -34,6 +34,8 @@ public class OutboxPublisherService {
                 case "DRIVER_ASSIGNED" -> "driver-assigned";
                 case "DRIVER_ARRIVED" -> "driver-arrived";
                 case "RIDE_STARTED" -> "ride-started";
+                case "RIDE_ENDED" -> "ride-ended";
+                case "FARE_FINALIZED" -> "fare-finalized";
                 default -> throw new IllegalStateException(
                         "Unknown event: " + event.getEventType());
             };

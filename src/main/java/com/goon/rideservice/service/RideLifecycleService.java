@@ -21,12 +21,34 @@ import java.util.UUID;
 public class RideLifecycleService {
 
     private final RideRepository rideRepository;
+    private final DriverAssignmentRepository driverAssignmentRepository;
     private final OutboxRepository outboxRepository;
     private final StringRedisTemplate redis;
 
     private static final double MAX_DISTANCE_M = 100;
     private static final long MAX_GPS_AGE_MS = 15000;
     private static final int MAX_OTP_ATTEMPTS = 5;
+
+    @Transactional
+    public void endRide(UUID rideId, UUID driverId) {
+        Ride ride = getRide(rideId, driverId);
+        if (ride.getStatus() == RideStatus.ENDED) {
+            return;
+        }
+        if (ride.getStatus() != RideStatus.STARTED) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT, "Only a started ride can end");
+        }
+        Instant now = Instant.now();
+        ride.setStatus(RideStatus.ENDED);
+        ride.setEndedAt(now);
+        ride.setPaymentStatus(PaymentStatus.FARE_PENDING);
+        ride.setNextFareAttemptAt(now);
+        driverAssignmentRepository.release(driverId, rideId);
+        publish(rideId, "RIDE_ENDED", Map.of(
+                "rideId", rideId.toString(), "driverId", driverId.toString(),
+                "vehicleType", ride.getVehicleType().name(), "endedAt", now.toString()));
+    }
 
     @Transactional
     public Instant markDriverArrived(UUID rideId, UUID driverId) {
@@ -144,10 +166,12 @@ public class RideLifecycleService {
 
         Ride ride = rideRepository.findByIdForUpdate(rideId)
                 .orElseThrow(() ->
-                        new IllegalStateException("Ride not found"));
+                        new org.springframework.web.server.ResponseStatusException(
+                                org.springframework.http.HttpStatus.NOT_FOUND, "Ride not found"));
 
         if (!driverId.equals(ride.getDriverId())) {
-            throw new SecurityException("Driver not assigned to this ride");
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.FORBIDDEN, "Driver not assigned to this ride");
         }
 
         return ride;

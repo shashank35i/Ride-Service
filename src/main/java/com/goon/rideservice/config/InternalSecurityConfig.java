@@ -26,6 +26,12 @@ public class InternalSecurityConfig {
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.POST, "/rides/create_ride")
                         .access(fromServiceWithScope("goon-services", "rides.create"))
+                        .requestMatchers(HttpMethod.POST, "/internal/rides/*/arrived")
+                        .access(fromServiceWithScope("goon-services", "rides.arrive"))
+                        .requestMatchers(HttpMethod.POST, "/internal/rides/*/start")
+                        .access(fromServiceWithScope("goon-services", "rides.start"))
+                        .requestMatchers(HttpMethod.POST, "/internal/rides/*/end")
+                        .access(fromServiceWithScope("goon-services", "rides.end"))
                         .requestMatchers(HttpMethod.PATCH, "/internal/offers/*/decline")
                         .access(fromServiceWithScope("goon-services", "offers.decline"))
                         .requestMatchers(

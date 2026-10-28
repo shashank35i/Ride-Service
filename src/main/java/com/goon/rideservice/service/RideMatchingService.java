@@ -42,7 +42,7 @@ public class RideMatchingService {
     }
 
     @Transactional
-    public void offerNextDriver(UUID rideId) {
+    public void offerNextDriver(UUID rideId) {    //decline offer
 
         Ride ride = rideRepository.findByIdForUpdate(rideId)
                 .orElseThrow(() ->

@@ -14,6 +14,9 @@ import java.util.UUID;
 
 
 public interface RideRepository extends JpaRepository<Ride, UUID> {
+    @Query("SELECT r.rideId FROM Ride r WHERE r.paymentStatus = com.goon.rideservice.entity.PaymentStatus.FARE_PENDING AND r.nextFareAttemptAt <= :now ORDER BY r.nextFareAttemptAt")
+    java.util.List<UUID> findFaresDue(@Param("now") java.time.Instant now,
+                                    org.springframework.data.domain.Pageable page);
     Optional<RideView> findByCustomerIdAndIdempotencyKey(UUID customerId, String idempotencyKey);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

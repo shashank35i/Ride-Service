@@ -17,6 +17,15 @@ import java.util.UUID;
 public class RideLifecycleController {
 
     private final RideLifecycleService rideLifecycleService;
+    private final com.goon.rideservice.service.FareFinalizationService fareFinalizationService;
+
+    @PostMapping("/{rideId}/end")
+    public ResponseEntity<com.goon.rideservice.dto.EndRideResponse> end(
+            @PathVariable UUID rideId, @RequestBody UUID driverId) {
+        rideLifecycleService.endRide(rideId, driverId);
+        var result = fareFinalizationService.finalizeFare(rideId);
+        return ResponseEntity.status(result.finalFare() == null ? 202 : 200).body(result);
+    }
 
     @PostMapping("/{rideId}/arrived")
     public ResponseEntity<Instant> markArrived(

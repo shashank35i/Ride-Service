@@ -102,6 +102,10 @@ public class Ride {
     @Column(name = "payment_status", nullable = false, length = 32)
     private PaymentStatus paymentStatus = PaymentStatus.NOT_STARTED;
 
+    @Builder.Default
+    @Column(name = "payment_revision", nullable = false, columnDefinition = "BIGINT DEFAULT 0")
+    private Long paymentRevision = 0L;
+
     @Column(name = "fare_source", length = 16)
     private String fareSource;
 

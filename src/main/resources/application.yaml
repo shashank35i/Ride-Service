@@ -6,10 +6,30 @@ spring:
     name: ride-service
   security:
     oauth2:
+      client:
+        registration:
+          goon-final-pricing:
+            provider: goon-keycloak
+            client-id: goon-services
+            client-secret: ${GOON_SERVICE_CLIENT_SECRET}
+            authorization-grant-type: client_credentials
+            scope:
+              - pricing.final
+            # Keycloak audience mapper on pricing.final: pricing-service
+        provider:
+          goon-keycloak:
+            issuer-uri: http://localhost:8090/realms/goon-internal-auth
       resourceserver:
         jwt:
           issuer-uri: http://localhost:8090/realms/goon-internal-auth
           audiences: ride-service
+  grpc:
+    client:
+      channel:
+        pricing:
+          target: static://localhost:9090
+          ssl:
+            enabled: false
   datasource:
     url: jdbc:mysql://localhost:3306/ride_db?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
     username: root
