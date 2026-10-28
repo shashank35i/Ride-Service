@@ -1,5 +1,6 @@
 package com.goon.rideservice.config;
 
+import com.goon.rideservice.security.InternalServiceTokenProvider;
 import com.goon.grpc.pricing.PricingServiceGrpc;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,16 +23,11 @@ public class FinalPricingClientConfig {
     }
 
     @Bean
-    GrpcChannelBuilderCustomizer<?> finalPricingBearerToken(OAuth2AuthorizedClientManager manager) {
+    GrpcChannelBuilderCustomizer<?> finalPricingBearerToken(InternalServiceTokenProvider tokenProvider) {
         return GrpcChannelBuilderCustomizer.matching("pricing", builder ->
-                builder.intercept(new BearerTokenAuthenticationInterceptor((java.util.function.Supplier<String>) () -> {
-                    var client = manager.authorize(OAuth2AuthorizeRequest
-                            .withClientRegistrationId("goon-final-pricing").principal("ride-service").build());
-                    if (client == null || client.getAccessToken() == null) {
-                        throw new IllegalStateException("Pricing service token unavailable");
-                    }
-                    return client.getAccessToken().getTokenValue();
-                })));
+                builder.intercept(new BearerTokenAuthenticationInterceptor(
+                        (java.util.function.Supplier<String>) () ->
+                                tokenProvider.getAccessToken("goon-final-pricing"))));
     }
 }
 
