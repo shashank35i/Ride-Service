@@ -77,7 +77,7 @@ public class RideService {
         try {
             return transactionTemplate.execute(s ->
                     createRideInTransaction(
-                            idempotencyKey, customerId, request,
+                            idempotencyKey, request,
                             claims, quoteId, custId, hash));
         } catch (DataIntegrityViolationException | CannotAcquireLockException
                  | DeadlockLoserDataAccessException e) {
@@ -98,7 +98,6 @@ public class RideService {
 
     private RideResponse createRideInTransaction(
             String idempotencyKey,
-            String customerId,
             RideRequest request,
             Claims claims,
             String quoteId,
@@ -121,7 +120,7 @@ public class RideService {
             return RideResponse.from(view);
         }
 
-        if (!customerId.equals(claims.getSubject())) {
+        if (!custId.toString().equals(claims.getSubject())) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN, "Customer mismatch");
         }

@@ -51,10 +51,12 @@ public class Ride {
     @Column(name = "ride_id", columnDefinition = "BINARY(16)")
     private UUID rideId;
 
-    @Column(name = "customer_id", nullable = false, length = 64)
+    @JdbcTypeCode(SqlTypes.BINARY)
+    @Column(name = "customer_id", nullable = false, columnDefinition = "BINARY(16)")
     private UUID customerId;
 
-    @Column(name = "driver_id", length = 64)
+    @JdbcTypeCode(SqlTypes.BINARY)
+    @Column(name = "driver_id", columnDefinition = "BINARY(16)")
     private UUID driverId;
 
     @Column(name = "idempotency_key", nullable = false, length = 128)

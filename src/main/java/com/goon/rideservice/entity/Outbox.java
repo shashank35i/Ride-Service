@@ -2,6 +2,8 @@ package com.goon.rideservice.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -19,10 +21,12 @@ public class Outbox {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "event_id", nullable = false, updatable = false)
+    @JdbcTypeCode(SqlTypes.BINARY)
+    @Column(name = "event_id", nullable = false, updatable = false, columnDefinition = "BINARY(16)")
     private UUID eventId;
 
-    @Column(name = "aggregate_id", nullable = false)
+    @JdbcTypeCode(SqlTypes.BINARY)
+    @Column(name = "aggregate_id", nullable = false, columnDefinition = "BINARY(16)")
     private UUID aggregateId;   //rideid
 
     @Column(name = "event_type", nullable = false, length = 50)
